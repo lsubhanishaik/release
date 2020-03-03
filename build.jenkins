@@ -1,0 +1,49 @@
+pipeline {
+  environment {
+    module="enterprise-management"
+    EMAIL_TO = 'prabhu.k@releaseiq.io,kmohan@releaseiq.io'
+  }
+  agent {
+    kubernetes {
+      //Cloud Kubernetes
+      yaml """
+      kind: Pod
+      metadata:
+        name: curl
+      spec:
+        containers:
+        - name: curl
+          image: docker.io/gempesaw/curl-jq:latest
+          imagePullPolicy: IfNotPresent
+          command:
+          -  cat
+          tty: true
+        volumes:
+          - name: docker-config
+            configMap:
+              name: docker-config
+      """
+    }
+  }
+  stages {
+    stage('Test') {
+      steps {
+        container(name: 'curl') {
+          sh '''
+            curl --location --request GET "$ENV_NAME.ingr01.releaseiq-dev.com/admin-be/index" | jq .
+          '''
+        }
+      }
+    }
+  }
+//   post {  
+//     success {  
+//       echo "${env.JOB_NAME} Testing Listener Service successful"
+//       mail bcc: '', body: "<br>Project: ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br> Build URL: ${env.BUILD_URL}console", cc: '', charset: 'UTF-8', from: 'devops', mimeType: 'text/html', replyTo: '', subject: "Build Success: Project name -> ${env.JOB_NAME}", to: "${EMAIL_TO}";  
+//     }  
+//     failure {
+//       echo "${env.JOB_NAME} Testing Listener Service unsuccessful"
+//       mail bcc: '', body: "<br>Project: ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br> Build URL: ${env.BUILD_URL}console", cc: '', charset: 'UTF-8', from: '', mimeType: 'text/html', replyTo: '', subject: "Build Failed: Project name -> ${env.JOB_NAME}", to: "${EMAIL_TO}";  
+//     }  
+//   }
+}
